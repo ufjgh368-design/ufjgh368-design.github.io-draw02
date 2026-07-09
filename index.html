@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>黃土水的一生|臺灣雕塑立體生命地圖</title>
+<style>
+:root{
+  --gold:#d9a441;
+  --gold-bright:#f2c96b;
+  --parchment:#e8d9b5;
+  --ink:#241a10;
+  --panel:rgba(24,17,10,0.88);
+  --panel-line:rgba(217,164,65,0.55);
+  --marble:#e9e6dd;
+  --clay:#b07a4a;
+  --bronze:#8a6b3f;
+  --danger:#8b3a2f;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0d0a06;}
+body{
+  font-family:"PingFang TC","Microsoft JhengHei","Heiti TC","Noto Sans CJK TC",system-ui,-apple-system,sans-serif;
+  color:var(--parchment);
+  user-select:none;
+  -webkit-user-select:none;
+}
+#stage3d{position:fixed;inset:0;transition:filter 1.6s ease;}
+#stage3d.grayscale{filter:grayscale(0.92) brightness(0.72) contrast(1.05);}
+#stage3d.mourning{filter:grayscale(0.55) brightness(0.8) hue-rotate(-10deg);}
+canvas{display:block;}
+
+/* ---------- 電視框線 ---------- */
+.tv-frame{position:fixed;inset:0;pointer-events:none;z-index:30;}
+.tv-corner{position:absolute;width:46px;height:46px;border:2px solid var(--panel-line);}
+.tv-corner.tl{top:14px;left:14px;border-right:none;border-bottom:none;}
+.tv-corner.tr{top:14px;right:14px;border-left:none;border-bottom:none;}
+.tv-corner.bl{bottom:14px;left:14px;border-right:none;border-top:none;}
+.tv-corner.br{bottom:14px;right:14px;border-left:none;border-top:none;}
+.letterbox{position:fixed;left:0;width:100%;height:9vh;background:#050403;z-index:28;transition:transform 1.1s cubic-bezier(.6,0,.3,1);pointer-events:none;}
+#lbTop{top:0;transform:translateY(-100%);}
+#lbBottom{bottom:0;transform:translateY(100%);}
+body.cinema #lbTop{transform:translateY(0);}
+body.cinema #lbBottom{transform:translateY(0);}
+
+/* ---------- 播出徽章 ---------- */
+#liveBadge{
+  position:fixed;top:26px;left:30px;z-index:40;display:flex;align-items:center;gap:10px;
+  background:var(--panel);border:1px solid var(--panel-line);padding:7px 14px;
+  letter-spacing:2px;font-size:13px;opacity:0;transition:opacity .8s;
+}
+#liveBadge .dot{width:9px;height:9px;border-radius:50%;background:#c0392b;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+#liveBadge .sub{color:var(--gold);font-weight:700;}
+
+#yearBadge{
+  position:fixed;top:26px;right:30px;z-index:40;text-align:right;
+  background:var(--panel);border:1px solid var(--panel-line);padding:7px 16px;
+  opacity:0;transition:opacity .8s;
+}
+#yearBadge .yr{font-size:26px;font-weight:800;color:var(--gold-bright);letter-spacing:3px;font-variant-numeric:tabular-nums;}
+#yearBadge .loc{font-size:12px;letter-spacing:3px;color:var(--parchment);opacity:.85;}
+body.hud-on #liveBadge,body.hud-on #yearBadge{opacity:1;}
+
+/* ---------- 能力值面板 ---------- */
+#statPanel{
+  position:fixed;right:26px;top:110px;z-index:40;width:236px;
+  background:var(--panel);border:1px solid var(--panel-line);
+  padding:14px 16px 12px;opacity:0;transform:translateX(24px);
+  transition:opacity .8s,transform .8s;
+}
+body.hud-on #statPanel{opacity:1;transform:translateX(0);}
+#statPanel h3{font-size:13px;letter-spacing:4px;color:var(--gold);border-bottom:1px solid var(--panel-line);padding-bottom:8px;margin-bottom:10px;font-weight:700;}
+.stat-row{margin-bottom:9px;}
+.stat-row .lab{display:flex;justify-content:space-between;font-size:12px;letter-spacing:1px;margin-bottom:3px;}
+.stat-row .val{color:var(--gold-bright);font-variant-numeric:tabular-nums;}
+.stat-bar{height:5px;background:rgba(232,217,181,.14);overflow:hidden;}
+.stat-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--bronze),var(--gold-bright));transition:width 1.2s cubic-bezier(.3,.9,.3,1);}
+.stat-row.rise .lab .name{color:var(--gold-bright);}
+.stat-row .delta{color:var(--gold-bright);font-size:11px;margin-left:6px;opacity:0;transition:opacity .4s;}
+.stat-row.rise .delta{opacity:1;}
+
+/* ---------- 敘事面板 ---------- */
+#narrPanel{
+  position:fixed;left:30px;bottom:12vh;z-index:40;max-width:520px;
+  background:var(--panel);border:1px solid var(--panel-line);
+  border-left:4px solid var(--gold);padding:18px 22px 16px;
+  opacity:0;transform:translateY(18px);transition:opacity .7s,transform .7s;
+}
+#narrPanel.show{opacity:1;transform:translateY(0);}
+#narrPanel .eyebrow{font-size:12px;letter-spacing:5px;color:var(--gold);margin-bottom:6px;}
+#narrPanel h2{font-size:22px;letter-spacing:2px;margin-bottom:10px;color:#fff;font-weight:800;}
+#narrPanel p{font-size:14.5px;line-height:1.85;letter-spacing:.5px;color:var(--parchment);}
+#narrPanel .keywords{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;}
+#narrPanel .kw{font-size:11px;letter-spacing:2px;border:1px solid var(--panel-line);color:var(--gold-bright);padding:3px 9px;}
+#nextBtn{
+  margin-top:14px;background:linear-gradient(180deg,#c99a3e,#9a7228);
+  border:1px solid var(--gold-bright);color:#1c1206;font-weight:800;
+  letter-spacing:4px;font-size:14px;padding:9px 26px;cursor:pointer;
+  font-family:inherit;display:none;
+}
+#nextBtn:hover{filter:brightness(1.12);}
+#nextBtn.show{display:inline-block;animation:riseIn .5s ease;}
+@keyframes riseIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---------- 時間軸 ---------- */
+#timeline{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:40;
+  display:flex;align-items:center;gap:0;opacity:0;transition:opacity .8s;
+}
+body.hud-on #timeline{opacity:1;}
+.tl-node{display:flex;flex-direction:column;align-items:center;position:relative;width:66px;}
+.tl-node .pt{width:10px;height:10px;border:2px solid var(--panel-line);background:#1c130a;transform:rotate(45deg);transition:all .5s;}
+.tl-node .yr{font-size:10px;letter-spacing:1px;margin-top:7px;color:rgba(232,217,181,.55);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tl-node::before{content:"";position:absolute;top:5px;left:-33px;width:66px;height:1px;background:rgba(217,164,65,.3);}
+.tl-node:first-child::before{display:none;}
+.tl-node.done .pt{background:var(--gold);border-color:var(--gold-bright);}
+.tl-node.now .pt{background:var(--gold-bright);border-color:#fff;box-shadow:0 0 14px rgba(242,201,107,.9);transform:rotate(45deg) scale(1.35);}
+.tl-node.now .yr{color:var(--gold-bright);}
+
+/* ---------- 操作提示 ---------- */
+#dragHint{
+  position:fixed;left:30px;top:110px;z-index:40;font-size:11.5px;letter-spacing:2px;
+  color:rgba(232,217,181,.6);border:1px dashed rgba(217,164,65,.35);padding:7px 12px;
+  opacity:0;transition:opacity .8s;background:rgba(24,17,10,.5);
+}
+body.hud-on #dragHint{opacity:1;}
+
+/* ---------- 全螢幕覆蓋層(片頭/抉擇/平行時空/測驗) ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 42%,rgba(38,27,14,.9),rgba(8,6,3,.97));
+  opacity:0;pointer-events:none;transition:opacity .8s;
+}
+.overlay.show{opacity:1;pointer-events:auto;}
+.ov-card{max-width:680px;width:calc(100% - 60px);text-align:center;padding:40px 44px;
+  border:1px solid var(--panel-line);background:rgba(20,14,8,.82);position:relative;}
+.ov-card::before,.ov-card::after{content:"";position:absolute;width:26px;height:26px;border:2px solid var(--gold);}
+.ov-card::before{top:-2px;left:-2px;border-right:none;border-bottom:none;}
+.ov-card::after{bottom:-2px;right:-2px;border-left:none;border-top:none;}
+
+/* 片頭 */
+#introOverlay .eyebrow{font-size:14px;letter-spacing:10px;color:var(--gold);margin-bottom:18px;}
+#introOverlay h1{font-size:52px;letter-spacing:12px;color:#fff;font-weight:900;margin-bottom:6px;text-shadow:0 0 30px rgba(217,164,65,.45);}
+#introOverlay .subtitle{font-size:17px;letter-spacing:6px;color:var(--parchment);margin-bottom:8px;}
+#introOverlay .years{font-size:14px;letter-spacing:5px;color:var(--gold-bright);margin-bottom:26px;font-variant-numeric:tabular-nums;}
+#introOverlay .desc{font-size:14px;line-height:2;color:rgba(232,217,181,.85);margin-bottom:30px;letter-spacing:1px;}
+.big-btn{
+  background:linear-gradient(180deg,#d9a441,#8f6a24);border:1px solid var(--gold-bright);
+  color:#180f04;font-weight:900;letter-spacing:6px;font-size:17px;padding:14px 46px;
+  cursor:pointer;font-family:inherit;transition:filter .2s,transform .2s;
+}
+.big-btn:hover{filter:brightness(1.15);transform:translateY(-2px);}
+
+/* 抉擇 */
+#decisionOverlay .eyebrow{font-size:13px;letter-spacing:8px;color:var(--gold);margin-bottom:14px;}
+#decisionOverlay h2{font-size:26px;letter-spacing:3px;color:#fff;margin-bottom:10px;font-weight:800;}
+#decisionOverlay .context{font-size:14px;line-height:1.9;color:rgba(232,217,181,.85);margin-bottom:26px;}
+.choice-btn{
+  display:block;width:100%;margin-bottom:14px;padding:16px 20px;text-align:left;
+  background:rgba(232,217,181,.05);border:1px solid var(--panel-line);color:var(--parchment);
+  font-family:inherit;font-size:15.5px;letter-spacing:2px;cursor:pointer;transition:all .25s;
+}
+.choice-btn .tag{display:inline-block;font-size:11px;letter-spacing:3px;color:var(--gold);border:1px solid var(--panel-line);padding:2px 8px;margin-bottom:6px;}
+.choice-btn:hover{background:rgba(217,164,65,.16);border-color:var(--gold-bright);transform:translateX(6px);}
+
+/* 抉擇結果 */
+#consequenceOverlay h2{font-size:24px;letter-spacing:3px;color:var(--gold-bright);margin-bottom:16px;font-weight:800;}
+#consequenceOverlay p{font-size:14.5px;line-height:2;color:var(--parchment);margin-bottom:26px;}
+
+/* 平行時空 */
+#badEndOverlay{background:radial-gradient(ellipse at 50% 45%,rgba(40,40,42,.92),rgba(5,5,6,.98));}
+#badEndOverlay .ov-card{border-color:rgba(180,180,185,.4);}
+#badEndOverlay .ov-card::before,#badEndOverlay .ov-card::after{border-color:#9a9aa0;}
+#badEndOverlay .eyebrow{font-size:13px;letter-spacing:8px;color:#b9b9bf;margin-bottom:14px;}
+#badEndOverlay h2{font-size:28px;letter-spacing:4px;color:#e4e4e8;margin-bottom:16px;font-weight:800;}
+#badEndOverlay p{font-size:14.5px;line-height:2;color:#c5c5ca;margin-bottom:28px;}
+#rewindBtn{
+  background:linear-gradient(180deg,#e8e8ec,#a9a9b0);border:1px solid #fff;color:#1a1a1e;
+  font-weight:900;letter-spacing:5px;font-size:16px;padding:13px 38px;cursor:pointer;font-family:inherit;
+}
+#rewindBtn:hover{filter:brightness(1.1);}
+
+/* 測驗 */
+#quizOverlay .eyebrow{font-size:13px;letter-spacing:8px;color:var(--gold);margin-bottom:12px;}
+#quizOverlay h2{font-size:22px;letter-spacing:2px;color:#fff;margin-bottom:22px;line-height:1.7;font-weight:800;}
+#quizOverlay .qnum{font-size:13px;letter-spacing:4px;color:var(--gold-bright);margin-bottom:10px;font-variant-numeric:tabular-nums;}
+.quiz-opt{
+  display:block;width:100%;margin-bottom:12px;padding:13px 18px;text-align:left;
+  background:rgba(232,217,181,.05);border:1px solid var(--panel-line);color:var(--parchment);
+  font-family:inherit;font-size:15px;letter-spacing:1.5px;cursor:pointer;transition:all .2s;
+}
+.quiz-opt:hover:not(:disabled){background:rgba(217,164,65,.16);border-color:var(--gold-bright);}
+.quiz-opt.correct{background:rgba(76,130,60,.35);border-color:#8fce7a;color:#dff2d5;}
+.quiz-opt.wrong{background:rgba(139,58,47,.35);border-color:#d98072;color:#f2d5cf;}
+.quiz-opt:disabled{cursor:default;}
+#quizFeedback{font-size:13.5px;line-height:1.8;color:var(--gold-bright);min-height:44px;margin-bottom:12px;}
+#quizScoreBar{font-size:13px;letter-spacing:3px;color:rgba(232,217,181,.7);margin-bottom:18px;font-variant-numeric:tabular-nums;}
+
+/* 結局 */
+#endOverlay h1{font-size:40px;letter-spacing:8px;color:#fff;margin-bottom:14px;font-weight:900;text-shadow:0 0 24px rgba(217,164,65,.5);}
+#endOverlay .seal{
+  width:120px;height:120px;margin:0 auto 22px;border:4px solid var(--gold-bright);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  color:var(--gold-bright);font-weight:900;letter-spacing:4px;font-size:20px;
+  box-shadow:0 0 40px rgba(242,201,107,.45),inset 0 0 24px rgba(242,201,107,.25);
+  transform:rotate(-8deg);
+}
+#endOverlay .seal small{font-size:11px;letter-spacing:3px;margin-top:4px;font-weight:400;}
+#endOverlay p{font-size:14.5px;line-height:2.1;color:var(--parchment);margin-bottom:26px;}
+#endOverlay .fail-seal{border-color:#b9b9bf;color:#d6d6da;box-shadow:none;}
+
+/* 事件金印(帝展) */
+#goldSeal{
+  position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(3) rotate(-14deg);z-index:50;
+  width:230px;height:230px;border:6px solid var(--gold-bright);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;
+  color:var(--gold-bright);opacity:0;pointer-events:none;
+  box-shadow:0 0 60px rgba(242,201,107,.6),inset 0 0 30px rgba(242,201,107,.3);
+  background:rgba(20,14,6,.55);
+}
+#goldSeal.stamp{animation:stamp .9s cubic-bezier(.2,1.4,.4,1) forwards;}
+@keyframes stamp{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(3) rotate(-14deg);}
+  60%{opacity:1;transform:translate(-50%,-50%) scale(.94) rotate(-8deg);}
+  100%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-8deg);}
+}
+#goldSeal.fade{transition:opacity 1s;opacity:0;}
+#goldSeal .t1{font-size:24px;font-weight:900;letter-spacing:4px;}
+#goldSeal .t2{font-size:13px;letter-spacing:2px;margin-top:8px;line-height:1.6;padding:0 18px;}
+
+/* 轉場黑幕 */
+#fader{position:fixed;inset:0;background:#000;z-index:70;opacity:0;pointer-events:none;transition:opacity 1.2s;}
+#fader.on{opacity:1;}
+
+@media (max-width:860px){
+  #statPanel{display:none;}
+  #narrPanel{left:16px;right:16px;max-width:none;bottom:13vh;}
+  #introOverlay h1{font-size:34px;letter-spacing:6px;}
+  #timeline{transform:translateX(-50%) scale(.8);}
+  #dragHint{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div id="stage3d"></div>
+
+<div class="tv-frame">
+  <div class="tv-corner tl"></div><div class="tv-corner tr"></div>
+  <div class="tv-corner bl"></div><div class="tv-corner br"></div>
+</div>
+<div class="letterbox" id="lbTop"></div>
+<div class="letterbox" id="lbBottom"></div>
+
+<div id="liveBadge"><span class="dot"></span><span class="sub">特別節目</span><span>臺灣美術・立體生命地圖</span></div>
+<div id="yearBadge"><div class="yr" id="yearText">1895</div><div class="loc" id="locText">臺北・艋舺</div></div>
+<div id="dragHint">◈ 拖曳旋轉鏡頭 ・ 滾輪縮放</div>
+
+<div id="statPanel">
+  <h3>藝術生命能力值</h3>
+  <div id="statRows"></div>
+</div>
+
+<div id="narrPanel">
+  <div class="eyebrow" id="narrEyebrow">序章</div>
+  <h2 id="narrTitle"></h2>
+  <p id="narrText"></p>
+  <div class="keywords" id="narrKeywords"></div>
+  <button id="nextBtn">繼續 ▶</button>
+</div>
+
+<div id="timeline"></div>
+
+<div id="goldSeal"><div class="t1" id="sealT1"></div><div class="t2" id="sealT2"></div></div>
+
+<!-- 片頭 -->
+<div class="overlay show" id="introOverlay">
+  <div class="ov-card">
+    <div class="eyebrow">臺灣美術史・電視特別節目</div>
+    <h1>黃土水的一生</h1>
+    <div class="subtitle">臺灣近代雕塑先驅・立體生命地圖</div>
+    <div class="years">1895 ─ 1930</div>
+    <div class="desc">
+      從艋舺的木屑與泥土,到東京美術學校的石膏拱門;<br>
+      從《蕃童》入選帝展,到《甘露水》與《水牛群像》──<br>
+      一場可自由運鏡的 3D 藝術生命之旅。你的每一次抉擇,都將改寫或回歸這段歷史。
+    </div>
+    <button class="big-btn" id="startBtn">開始播映</button>
+  </div>
+</div>
+
+<!-- 抉擇 -->
+<div class="overlay" id="decisionOverlay">
+  <div class="ov-card">
+    <div class="eyebrow">◆ 人生分歧點 ◆</div>
+    <h2 id="decTitle"></h2>
+    <div class="context" id="decContext"></div>
+    <div id="decChoices"></div>
+  </div>
+</div>
+
+<!-- 抉擇結果 -->
+<div class="overlay" id="consequenceOverlay">
+  <div class="ov-card">
+    <div class="eyebrow" style="font-size:13px;letter-spacing:8px;color:var(--gold);margin-bottom:14px;">歷史的迴響</div>
+    <h2 id="conTitle"></h2>
+    <p id="conText"></p>
+    <button class="big-btn" id="conBtn">繼續旅程</button>
+  </div>
+</div>
+
+<!-- 平行時空 -->
+<div class="overlay" id="badEndOverlay">
+  <div class="ov-card">
+    <div class="eyebrow">▣ 平行時空・灰色結局 ▣</div>
+    <h2 id="badTitle"></h2>
+    <p id="badText"></p>
+    <button id="rewindBtn">⟲ 時光倒流,回歸真實歷史</button>
+  </div>
+</div>
+
+<!-- 測驗 -->
+<div class="overlay" id="quizOverlay">
+  <div class="ov-card">
+    <div class="eyebrow">終章挑戰・生命地圖測驗</div>
+    <div id="quizScoreBar"></div>
+    <div class="qnum" id="quizNum"></div>
+    <h2 id="quizQ"></h2>
+    <div id="quizOpts"></div>
+    <div id="quizFeedback"></div>
+    <button class="big-btn" id="quizNextBtn" style="display:none;">下一題 ▶</button>
+  </div>
+</div>
+
+<!-- 結局 -->
+<div class="overlay" id="endOverlay">
+  <div class="ov-card">
+    <div id="endSealWrap"></div>
+    <h1 id="endTitle"></h1>
+    <p id="endText"></p>
+    <button class="big-btn" id="endBtn">重新播映</button>
+  </div>
+</div>
+
+<div id="fader"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =========================================================
+   黃土水的一生 ── 3D 立體生命地圖
+   泥土 → 石膏 → 青銅 → 大理石:一位雕塑家的材質人生
+   ========================================================= */
+
+// ---------- 基礎場景 ----------
+var container = document.getElementById('stage3d');
+var scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x14100a, 0.0032);
+
+var camera = new THREE.PerspectiveCamera(52, window.innerWidth/window.innerHeight, 0.1, 3000);
+var renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x14100a);
+container.appendChild(renderer.domElement);
+
+var ambient = new THREE.AmbientLight(0xffe9c4, 0.55);
+scene.add(ambient);
+var sun = new THREE.DirectionalLight(0xffd9a0, 0.95);
+sun.position.set(120, 200, 80);
+scene.add(sun);
+var rim = new THREE.DirectionalLight(0x7a9ab8, 0.3);
+rim.position.set(-150, 90, -120);
+scene.add(rim);
+
+// ---------- 海面:羊皮紙航海圖 ----------
+function makeSeaTexture(){
+  var c = document.createElement('canvas');
+  c.width = 1024; c.height = 1024;
+  var g = c.getContext('2d');
+  var grad = g.createRadialGradient(512,512,120,512,512,760);
+  grad.addColorStop(0, '#cdb98f');
+  grad.addColorStop(0.6, '#b7a077');
+  grad.addColorStop(1, '#8f7c58');
+  g.fillStyle = grad;
+  g.fillRect(0,0,1024,1024);
+  // 紙纖維雜訊
+  for(var i=0;i<9000;i++){
+    g.fillStyle = 'rgba(60,45,25,'+(Math.random()*0.05)+')';
+    g.fillRect(Math.random()*1024, Math.random()*1024, 1.6, 1.6);
+  }
+  // 經緯格線
+  g.strokeStyle = 'rgba(90,66,34,0.28)';
+  g.lineWidth = 1;
+  for(var x=0;x<=1024;x+=64){
+    g.beginPath(); g.moveTo(x,0); g.lineTo(x,1024); g.stroke();
+    g.beginPath(); g.moveTo(0,x); g.lineTo(1024,x); g.stroke();
+  }
+  // 羅盤玫瑰
+  g.save();
+  g.translate(190, 830);
+  g.strokeStyle = 'rgba(90,60,25,0.6)';
+  g.fillStyle = 'rgba(90,60,25,0.5)';
+  g.lineWidth = 2;
+  g.beginPath(); g.arc(0,0,74,0,Math.PI*2); g.stroke();
+  g.beginPath(); g.arc(0,0,58,0,Math.PI*2); g.stroke();
+  for(var k=0;k<16;k++){
+    var a = k*Math.PI/8;
+    var r = (k%2===0)?74:46;
+    g.beginPath();
+    g.moveTo(Math.cos(a)*10, Math.sin(a)*10);
+    g.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+    g.stroke();
+  }
+  g.beginPath();
+  g.moveTo(0,-92); g.lineTo(10,-64); g.lineTo(0,-70); g.lineTo(-10,-64); g.closePath();
+  g.fill();
+  g.restore();
+  // 航海圖漣漪短線
+  g.strokeStyle = 'rgba(80,58,30,0.22)';
+  for(var w=0;w<260;w++){
+    var wx = Math.random()*1024, wy = Math.random()*1024;
+    g.beginPath();
+    g.arc(wx, wy, 6+Math.random()*6, Math.PI*0.15, Math.PI*0.85);
+    g.stroke();
+  }
+  var tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(3,3);
+  return tex;
+}
+var sea = new THREE.Mesh(
+  new THREE.PlaneGeometry(1600, 1600),
+  new THREE.MeshLambertMaterial({map: makeSeaTexture()})
+);
+sea.rotation.x = -Math.PI/2;
+sea.position.y = -0.6;
+scene.add(sea);
+
+// ---------- 島嶼 ----------
+function extrudeLand(pts, color, h){
+  var shape = new THREE.Shape();
+  shape.moveTo(pts[0][0], pts[0][1]);
+  for(var i=1;i<pts.length;i++) shape.lineTo(pts[i][0], pts[i][1]);
+  shape.closePath();
+  var geo = new THREE.ExtrudeGeometry(shape, {depth:h, bevelEnabled:true, bevelThickness:1.2, bevelSize:1.4, bevelSegments:2});
+  var mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({color:color}));
+  mesh.rotation.x = -Math.PI/2;
+  mesh.position.y = 0;
+  return mesh;
+}
+// 臺灣(簡化輪廓,單位=世界座標)
+var taiwanPts = [
+  [-66,-52],[-60,-58],[-53,-60],[-47,-56],[-43,-48],[-41,-38],[-42,-26],
+  [-45,-14],[-49,-4],[-54,2],[-60,6],[-66,4],[-70,-4],[-73,-16],
+  [-74,-28],[-72,-40],[-69,-48]
+];
+// 世界座標系:x 東西、z 南北(z 取負朝北)。Shape 的 y 對應 -z。
+var taiwan = extrudeLand(taiwanPts.map(function(p){return [p[0], -p[1]];}), 0x9d7f52, 3.2);
+scene.add(taiwan);
+// 中央山脈
+var mountains = new THREE.Group();
+for(var m=0;m<7;m++){
+  var mh = 5+Math.random()*7;
+  var cone = new THREE.Mesh(
+    new THREE.ConeGeometry(3.5+Math.random()*2.5, mh, 5),
+    new THREE.MeshLambertMaterial({color:0x7d6440})
+  );
+  cone.position.set(-57+(Math.random()*4-2), 3+mh/2, -20-m*5.4+(Math.random()*3-1.5));
+  mountains.add(cone);
+}
+scene.add(mountains);
+
+// 日本(西南日本弧線簡化)
+var japanPts = [
+  [58,-96],[70,-104],[84,-108],[98,-106],[110,-98],[118,-88],[122,-76],
+  [118,-68],[108,-66],[96,-70],[84,-72],[72,-74],[62,-80],[56,-88]
+];
+var japan = extrudeLand(japanPts.map(function(p){return [p[0], -p[1]];}), 0x8f7a55, 2.8);
+scene.add(japan);
+// 九州小島
+var kyushuPts = [[42,-78],[50,-84],[56,-78],[52,-70],[44,-70]];
+var kyushu = extrudeLand(kyushuPts.map(function(p){return [p[0], -p[1]];}), 0x8f7a55, 2.4);
+scene.add(kyushu);
+
+// ---------- 文字標籤 Sprite ----------
+function textSprite(text, opts){
+  opts = opts || {};
+  var size = opts.size || 30;
+  var color = opts.color || '#f2c96b';
+  var sub = opts.sub || '';
+  var c = document.createElement('canvas');
+  var g = c.getContext('2d');
+  var font = '700 '+size+'px "PingFang TC","Microsoft JhengHei",sans-serif';
+  g.font = font;
+  var w = Math.max(g.measureText(text).width, sub? g.measureText(sub).width*0.6 : 0) + 44;
+  c.width = Math.ceil(w);
+  c.height = sub? size*2.4 : size*1.7;
+  g = c.getContext('2d');
+  g.font = font;
+  g.textAlign = 'center';
+  g.shadowColor = 'rgba(0,0,0,0.9)';
+  g.shadowBlur = 8;
+  g.fillStyle = color;
+  g.fillText(text, c.width/2, size*1.08);
+  if(sub){
+    g.font = '400 '+Math.round(size*0.52)+'px "PingFang TC","Microsoft JhengHei",sans-serif';
+    g.fillStyle = 'rgba(232,217,181,0.95)';
+    g.fillText(sub, c.width/2, size*1.95);
+  }
+  var tex = new THREE.CanvasTexture(c);
+  var sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false}));
+  var sc = (opts.scale||0.13);
+  sp.scale.set(c.width*sc, c.height*sc, 1);
+  return sp;
+}
+
+// ---------- 地點標記 ----------
+var markers = {};
+function addMarker(key, x, z, label, sub, color){
+  var grp = new THREE.Group();
+  var col = color || 0xd9a441;
+  var beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.9, 26, 8, 1, true),
+    new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.22, depthWrite:false})
+  );
+  beam.position.y = 16;
+  grp.add(beam);
+  var pin = new THREE.Mesh(
+    new THREE.ConeGeometry(1.5, 4.2, 6),
+    new THREE.MeshLambertMaterial({color:col, emissive:col, emissiveIntensity:0.35})
+  );
+  pin.position.y = 5;
+  pin.rotation.x = Math.PI;
+  grp.add(pin);
+  var ring = new THREE.Mesh(
+    new THREE.RingGeometry(2.4, 3.1, 32),
+    new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.75, side:THREE.DoubleSide})
+  );
+  ring.rotation.x = -Math.PI/2;
+  ring.position.y = 3.4;
+  grp.add(ring);
+  var lab = textSprite(label, {sub:sub, size:34});
+  lab.position.y = 31;
+  grp.add(lab);
+  grp.position.set(x, 0, z);
+  grp.visible = false;
+  grp.userData = {ring:ring, beam:beam, base:3.4};
+  scene.add(grp);
+  markers[key] = grp;
+  return grp;
+}
+addMarker('monga',      -63, -6,  '艋舺',        '生命起點・1895');
+addMarker('dadaocheng', -60, -12, '大稻埕',      '成長之城');
+addMarker('school',     -56, -8,  '公學校之門',  '雕刻啟蒙走廊');
+addMarker('tokyo',       96, -84, '東京美術學校','雕塑鍛鍊之城・1915', 0xe6e2d6);
+addMarker('teiten',     104, -78, '帝國美術展覽會','《蕃童》入選・1920', 0xf2c96b);
+addMarker('kanro',       88, -92, '大理石聖殿',  '《甘露水》・1921', 0xf0ede4);
+addMarker('ikebukuro',  112, -90, '池袋工作室',  '異地創作戰場', 0xb08a50);
+addMarker('fields',     -58, -30, '臺灣田野',    '土地雕塑路線', 0x9dbb62);
+addMarker('buffalo',    -64, -18, '《水牛群像》','生命總結・1930', 0xd9a441);
+
+// ---------- 生命路線 ----------
+var routeStops = [
+  new THREE.Vector3(-63, 2.5, -6),
+  new THREE.Vector3(-60, 2.5, -12),
+  new THREE.Vector3(-56, 2.5, -8),
+  new THREE.Vector3(-20, 4, -34),   // 出海
+  new THREE.Vector3(30, 5, -62),    // 黑潮航路
+  new THREE.Vector3(96, 3, -84),    // 東京美術學校
+  new THREE.Vector3(104, 3, -78),   // 帝展
+  new THREE.Vector3(88, 3, -92),    // 甘露水
+  new THREE.Vector3(112, 3, -90),   // 池袋
+  new THREE.Vector3(40, 6, -58),    // 返臺航路
+  new THREE.Vector3(-58, 2.5, -30), // 臺灣田野
+  new THREE.Vector3(-64, 2.5, -18)  // 水牛群像
+];
+var routeCurve = new THREE.CatmullRomCurve3(routeStops);
+var ROUTE_PTS = 480;
+var routePositions = routeCurve.getPoints(ROUTE_PTS);
+var routeGeo = new THREE.BufferGeometry().setFromPoints(routePositions);
+var routeLine = new THREE.Line(routeGeo, new THREE.LineBasicMaterial({color:0xf2c96b, transparent:true, opacity:0.95}));
+routeGeo.setDrawRange(0, 0);
+scene.add(routeLine);
+// 路線光點
+var routeGlow = new THREE.Mesh(
+  new THREE.SphereGeometry(1.1, 12, 12),
+  new THREE.MeshBasicMaterial({color:0xfff0c0})
+);
+routeGlow.visible = false;
+scene.add(routeGlow);
+
+var routeProgress = 0;      // 目前繪出比例 0~1
+var routeTarget = 0;        // 目標比例
+
+// 每個地點在曲線上的比例(用停靠點索引近似)
+function stopRatio(idx){ return idx/(routeStops.length-1); }
+
+// ---------- 金色光塵 ----------
+var dustGeo = new THREE.BufferGeometry();
+var DUST_N = 700;
+var dustPos = new Float32Array(DUST_N*3);
+for(var d=0; d<DUST_N; d++){
+  dustPos[d*3]   = (Math.random()-0.5)*420;
+  dustPos[d*3+1] = Math.random()*90+4;
+  dustPos[d*3+2] = (Math.random()-0.5)*420 - 40;
+}
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+var dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+  color:0xf2c96b, size:0.9, transparent:true, opacity:0.55, depthWrite:false
+}));
+scene.add(dust);
+
+// 白色石膏粉塵(逝世段落用)
+var snowGeo = new THREE.BufferGeometry();
+var SNOW_N = 500;
+var snowPos = new Float32Array(SNOW_N*3);
+for(var s=0; s<SNOW_N; s++){
+  snowPos[s*3]   = (Math.random()-0.5)*200 - 60;
+  snowPos[s*3+1] = Math.random()*80+10;
+  snowPos[s*3+2] = (Math.random()-0.5)*160 - 10;
+}
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+var plasterDust = new THREE.Points(snowGeo, new THREE.PointsMaterial({
+  color:0xf5f2ea, size:1.1, transparent:true, opacity:0, depthWrite:false
+}));
+scene.add(plasterDust);
+var plasterOn = false;
+
+// ---------- 紀念碑(作品雕像) ----------
+var monuments = {};
+
+// 《蕃童》:青銅少年與笛聲光環
+(function(){
+  var g = new THREE.Group();
+  var mat = new THREE.MeshStandardMaterial({color:0x8a6b3f, metalness:0.75, roughness:0.35, emissive:0x3a2c14, emissiveIntensity:0.4});
+  var base = new THREE.Mesh(new THREE.CylinderGeometry(3.4,4,1.6,8), new THREE.MeshLambertMaterial({color:0x5a4630}));
+  base.position.y = 0.8; g.add(base);
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(1,1.5,6,8), mat);
+  body.position.y = 4.6; g.add(body);
+  var head = new THREE.Mesh(new THREE.SphereGeometry(1.15,12,12), mat);
+  head.position.y = 8.3; g.add(head);
+  var flute = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,3.6,6), mat);
+  flute.position.set(1.4,7.6,0); flute.rotation.z = Math.PI/3.2; g.add(flute);
+  for(var r=0;r<3;r++){
+    var ring = new THREE.Mesh(new THREE.TorusGeometry(2.2+r*1.1, 0.06, 6, 40),
+      new THREE.MeshBasicMaterial({color:0xf2c96b, transparent:true, opacity:0.5-r*0.13}));
+    ring.position.y = 7.6; g.add(ring);
+    if(!g.userData.rings) g.userData.rings = [];
+    g.userData.rings.push(ring);
+  }
+  g.position.set(104, 0, -73);
+  g.visible = false; g.scale.set(0.01,0.01,0.01);
+  scene.add(g); monuments.bandou = g;
+})();
+
+// 《甘露水》:大理石貝殼與立姿光影
+(function(){
+  var g = new THREE.Group();
+  var marble = new THREE.MeshStandardMaterial({color:0xe9e6dd, metalness:0.05, roughness:0.4, emissive:0xd8d4c6, emissiveIntensity:0.28});
+  var shell = new THREE.Mesh(new THREE.SphereGeometry(5.4, 24, 16, 0, Math.PI), marble);
+  shell.rotation.x = -Math.PI/2.15;
+  shell.position.y = 5.6;
+  shell.scale.set(1,1.35,0.5);
+  g.add(shell);
+  var figure = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.4,7.4,10), marble);
+  figure.position.y = 4.8; g.add(figure);
+  var fhead = new THREE.Mesh(new THREE.SphereGeometry(0.95,12,12), marble);
+  fhead.position.y = 9.1; g.add(fhead);
+  var halo = new THREE.PointLight(0xf5f0e0, 1.4, 44);
+  halo.position.y = 8; g.add(halo);
+  var pedestal = new THREE.Mesh(new THREE.BoxGeometry(7,1.4,4.6), new THREE.MeshLambertMaterial({color:0xc9c4b6}));
+  pedestal.position.y = 0.7; g.add(pedestal);
+  g.userData.halo = halo;
+  g.position.set(88, 0, -97);
+  g.visible = false; g.scale.set(0.01,0.01,0.01);
+  scene.add(g); monuments.kanro = g;
+})();
+
+// 《水牛群像》:巨大浮雕牆
+function makeBuffaloTexture(){
+  var c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  var g = c.getContext('2d');
+  var grad = g.createLinearGradient(0,0,0,512);
+  grad.addColorStop(0,'#d8c49a'); grad.addColorStop(1,'#b49a6c');
+  g.fillStyle = grad; g.fillRect(0,0,1024,512);
+  g.strokeStyle = 'rgba(90,66,34,0.5)'; g.lineWidth = 10;
+  g.strokeRect(14,14,996,484);
+  // 芭蕉葉
+  g.fillStyle = 'rgba(120,130,70,0.55)';
+  function leaf(x,y,s,rot){
+    g.save(); g.translate(x,y); g.rotate(rot);
+    g.beginPath(); g.ellipse(0,0,18*s,72*s,0,0,Math.PI*2); g.fill();
+    g.restore();
+  }
+  leaf(110,120,1.3,-0.4); leaf(160,100,1.1,0.25); leaf(910,130,1.3,0.4); leaf(860,105,1,-0.2);
+  // 水牛剪影(五頭)
+  g.fillStyle = 'rgba(96,72,44,0.9)';
+  function buffalo(x,y,s,flip){
+    g.save(); g.translate(x,y); g.scale(flip?-s:s,s);
+    g.beginPath();
+    g.ellipse(0,0,66,34,0,0,Math.PI*2);           // 身體
+    g.fill();
+    g.beginPath(); g.ellipse(58,-8,22,17,0.25,0,Math.PI*2); g.fill(); // 頭
+    g.beginPath();                                // 牛角
+    g.moveTo(66,-22); g.quadraticCurveTo(96,-46,104,-20);
+    g.quadraticCurveTo(92,-32,70,-14); g.fill();
+    g.fillRect(-46,24,12,42); g.fillRect(-12,26,12,40);   // 腿
+    g.fillRect(20,26,12,40);  g.fillRect(46,22,12,42);
+    g.restore();
+  }
+  buffalo(240,300,1.15,false);
+  buffalo(430,320,1.0,false);
+  buffalo(600,295,1.2,true);
+  buffalo(770,325,0.95,true);
+  buffalo(510,235,0.7,false);
+  // 牧童剪影(三位)
+  g.fillStyle = 'rgba(80,58,34,0.95)';
+  function child(x,y,s){
+    g.save(); g.translate(x,y); g.scale(s,s);
+    g.beginPath(); g.arc(0,-30,11,0,Math.PI*2); g.fill();      // 頭
+    g.fillRect(-8,-20,16,34);                                   // 身
+    g.fillRect(-8,14,6,26); g.fillRect(2,14,6,26);              // 腿
+    g.beginPath(); g.arc(0,-52,16,Math.PI*1.05,Math.PI*1.95); g.stroke(); // 斗笠弧
+    g.restore();
+  }
+  g.strokeStyle = 'rgba(80,58,34,0.95)'; g.lineWidth = 6;
+  child(150,330,1.1); child(345,255,0.9); child(690,250,0.95);
+  return new THREE.CanvasTexture(c);
+}
+(function(){
+  var g = new THREE.Group();
+  var wall = new THREE.Mesh(
+    new THREE.BoxGeometry(26, 12, 1.6),
+    [
+      new THREE.MeshLambertMaterial({color:0xb49a6c}),
+      new THREE.MeshLambertMaterial({color:0xb49a6c}),
+      new THREE.MeshLambertMaterial({color:0xb49a6c}),
+      new THREE.MeshLambertMaterial({color:0xb49a6c}),
+      new THREE.MeshLambertMaterial({map:makeBuffaloTexture(), emissive:0x2a1e0c, emissiveIntensity:0.35}),
+      new THREE.MeshLambertMaterial({color:0xb49a6c})
+    ]
+  );
+  wall.position.y = 7.2;
+  g.add(wall);
+  var base = new THREE.Mesh(new THREE.BoxGeometry(28,1.4,4), new THREE.MeshLambertMaterial({color:0x7d6440}));
+  base.position.y = 0.7; g.add(base);
+  var glow = new THREE.PointLight(0xffdf9e, 1.2, 60);
+  glow.position.set(0, 9, 10); g.add(glow);
+  g.position.set(-64, 0, -18);
+  g.rotation.y = Math.PI/7;
+  g.visible = false; g.scale.set(0.01,0.01,0.01);
+  scene.add(g); monuments.buffalo = g;
+})();
+
+// 紀念碑升起動畫
+var risingMonuments = [];
+function riseMonument(key){
+  var m = monuments[key];
+  if(!m) return;
+  m.visible = true;
+  risingMonuments.push({obj:m, t:0});
+}
+
+// ---------- 自訂軌道攝影機 ----------
+var camCtl = {
+  target: new THREE.Vector3(-60, 2, -8),
+  radius: 220, theta: -0.6, phi: 1.05,
+  minR: 26, maxR: 420
+};
+function applyCamera(){
+  var t = camCtl.target;
+  camCtl.phi = Math.max(0.18, Math.min(1.5, camCtl.phi));
+  camCtl.radius = Math.max(camCtl.minR, Math.min(camCtl.maxR, camCtl.radius));
+  camera.position.set(
+    t.x + camCtl.radius * Math.sin(camCtl.phi) * Math.sin(camCtl.theta),
+    t.y + camCtl.radius * Math.cos(camCtl.phi),
+    t.z + camCtl.radius * Math.sin(camCtl.phi) * Math.cos(camCtl.theta)
+  );
+  camera.lookAt(t);
+}
+applyCamera();
+
+// 拖曳與滾輪
+var dragging = false, lastX = 0, lastY = 0;
+renderer.domElement.addEventListener('mousedown', function(e){ dragging = true; lastX = e.clientX; lastY = e.clientY; });
+window.addEventListener('mouseup', function(){ dragging = false; });
+window.addEventListener('mousemove', function(e){
+  if(!dragging || camTween) return;
+  camCtl.theta -= (e.clientX - lastX) * 0.005;
+  camCtl.phi   -= (e.clientY - lastY) * 0.004;
+  lastX = e.clientX; lastY = e.clientY;
+});
+renderer.domElement.addEventListener('wheel', function(e){
+  if(camTween) return;
+  camCtl.radius *= (1 + Math.sign(e.deltaY)*0.08);
+}, {passive:true});
+// 觸控
+renderer.domElement.addEventListener('touchstart', function(e){
+  if(e.touches.length===1){ dragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; }
+}, {passive:true});
+renderer.domElement.addEventListener('touchend', function(){ dragging = false; }, {passive:true});
+renderer.domElement.addEventListener('touchmove', function(e){
+  if(!dragging || camTween || e.touches.length!==1) return;
+  camCtl.theta -= (e.touches[0].clientX - lastX) * 0.006;
+  camCtl.phi   -= (e.touches[0].clientY - lastY) * 0.005;
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+}, {passive:true});
+
+// 攝影機轉場
+var camTween = null;
+function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+function flyTo(cfg, dur, done){
+  camTween = {
+    t: 0, dur: dur||3.2, done: done,
+    from: {target:camCtl.target.clone(), radius:camCtl.radius, theta:camCtl.theta, phi:camCtl.phi},
+    to: {
+      target: new THREE.Vector3(cfg.tx, cfg.ty||2, cfg.tz),
+      radius: cfg.r, theta: cfg.th, phi: cfg.ph
+    }
+  };
+}
+
+// ---------- 能力值 ----------
+var STAT_DEFS = [
+  {key:'obs',      name:'造形觀察力'},
+  {key:'tech',     name:'雕塑技法'},
+  {key:'taiwan',   name:'臺灣題材意識'},
+  {key:'conf',     name:'文化自信'},
+  {key:'lonely',   name:'創作孤獨'},
+  {key:'pressure', name:'時代壓力'},
+  {key:'influence',name:'藝術影響力'}
+];
+var stats = {obs:8, tech:4, taiwan:6, conf:5, lonely:5, pressure:8, influence:0};
+var statRowsEl = document.getElementById('statRows');
+STAT_DEFS.forEach(function(s){
+  var row = document.createElement('div');
+  row.className = 'stat-row';
+  row.id = 'stat-' + s.key;
+  row.innerHTML =
+    '<div class="lab"><span class="name">'+s.name+'<span class="delta"></span></span>'+
+    '<span class="val">0</span></div><div class="stat-bar"><i></i></div>';
+  statRowsEl.appendChild(row);
+});
+function refreshStats(deltas){
+  STAT_DEFS.forEach(function(s){
+    var row = document.getElementById('stat-'+s.key);
+    var v = Math.max(0, Math.min(100, stats[s.key]));
+    row.querySelector('.val').textContent = v;
+    row.querySelector('.stat-bar i').style.width = v + '%';
+    var dl = row.querySelector('.delta');
+    if(deltas && deltas[s.key]){
+      dl.textContent = (deltas[s.key]>0?' ▲+':' ▼')+deltas[s.key];
+      row.classList.add('rise');
+      setTimeout(function(){ row.classList.remove('rise'); }, 2600);
+    }
+  });
+}
+function applyStats(deltas){
+  if(!deltas) return;
+  for(var k in deltas){ stats[k] = Math.max(0, Math.min(100, stats[k]+deltas[k])); }
+  refreshStats(deltas);
+}
+refreshStats(null);
+
+// ---------- 章節資料 ----------
+var STAGES = [
+  {
+    year:'1895', loc:'臺北・艋舺', eyebrow:'序章・高空俯瞰',
+    title:'艋舺:生命起點',
+    text:'鏡頭自高空俯瞰日治初期的臺北。艋舺的街道、廟埕、河岸與商行,在航海圖上緩緩浮現。木匠家庭的孩子黃土水在此出生──街聲、香火與木屑,是他最早聽見的世界。',
+    kws:['艋舺','木匠之家','城市記憶'],
+    marker:'monga', stop:0,
+    cam:{tx:-62, ty:2, tz:-8, r:150, th:-0.5, ph:0.62}, dur:5.5,
+    stats:{obs:6}
+  },
+  {
+    year:'1900年代', loc:'臺北・大稻埕', eyebrow:'第一章・成長之城',
+    title:'大稻埕:從手作中看見形體',
+    text:'家境清寒的少年在大稻埕成長。土黃色光塵與飛散的木屑之間,他從父兄的木作、廟宇的雕飾與市街的人群裡,慢慢長出對「形體」的敏銳直覺──不安、韌性,與一絲微弱的金光。',
+    kws:['早年困境','家境清寒','雕塑天分'],
+    marker:'dadaocheng', stop:1,
+    cam:{tx:-60, ty:2, tz:-11, r:70, th:-1.0, ph:0.9}, dur:4,
+    stats:{obs:10, pressure:8}
+  },
+  {
+    year:'1907–1915', loc:'臺北・公學校', eyebrow:'第二章・雕刻啟蒙',
+    title:'公學校之門與啟蒙走廊',
+    text:'鉛筆素描、泥土模型、木雕工具與石膏像的光束,在啟蒙走廊上一一亮起。國語學校師範科的訓練之外,一件木雕作品讓他的天分被看見。此刻,人生的第一道分歧出現在地圖上。',
+    kws:['素描','木雕','關鍵轉折'],
+    marker:'school', stop:2,
+    cam:{tx:-56, ty:3, tz:-8, r:52, th:-0.2, ph:0.8}, dur:3.5,
+    stats:{tech:10},
+    decision:{
+      title:'留下,還是出發?',
+      context:'穩定的教職近在眼前;海的另一端,是未知卻遼闊的雕塑世界。',
+      good:{
+        text:'追尋雕塑,前往更大的世界',
+        conTitle:'金色航路展開',
+        conText:'1915 年,黃土水帶著木雕作品與推薦,渡海赴日。金色路線穿越黑潮,朝東京延伸──這一步,讓臺灣的雕塑史從此有了起點。技法即將突破,但孤獨與代價也隨之而來。'
+      },
+      bad:{
+        text:'留在原地,走穩定人生',
+        badTitle:'平行時空:未曾出航的木匠',
+        badText:'在這條灰色的時間線裡,黃土水留在臺北,成為一位手藝精湛卻默默無名的匠師。沒有東京美術學校、沒有帝展、沒有《甘露水》與《水牛群像》。臺灣近代雕塑的第一聲,遲了數十年才被別人喊出。歷史在此靜止──唯有回到真實,故事才能繼續。'
+      }
+    }
+  },
+  {
+    year:'1915', loc:'東京・上野', eyebrow:'第三章・渡海赴日',
+    title:'東京美術學校:雕塑迷宮',
+    text:'航線、火車與東京街景快速掠過,鏡頭穿越高聳的石膏拱門。牆面浮現木雕結構、人體比例、肌肉線條與青銅光澤──東京美術學校像一座巨大的雕塑迷宮。黃土水的手從泥土中塑出人物輪廓:他開始把生命、土地與時代凝固成形。',
+    kws:['1915 入學','石膏拱門','臺灣雕塑青年'],
+    marker:'tokyo', stop:5,
+    cam:{tx:96, ty:4, tz:-84, r:95, th:0.7, ph:0.7}, dur:6,
+    stats:{tech:18, obs:14, lonely:14, pressure:10}
+  },
+  {
+    year:'1920', loc:'東京・帝展會場', eyebrow:'第四章・被世界看見',
+    title:'《蕃童》入選帝展',
+    text:'巨大金色印章落下:臺灣人首次在日本官方展覽中被看見。臺灣山林、吹笛的孩童、風與樹影,從泥塑表面浮現成一座會呼吸的雕像。掌聲之中,第二道分歧浮現──他要成為誰的雕塑家?',
+    kws:['帝展','《蕃童》','臺灣首例'],
+    marker:'teiten', stop:6, seal:{t1:'帝展入選', t2:'《蕃童》・1920<br>臺灣人首次入選日本官展'},
+    monument:'bandou',
+    cam:{tx:104, ty:4, tz:-76, r:60, th:1.1, ph:0.75}, dur:4.5,
+    stats:{influence:24, taiwan:14, conf:14},
+    decision:{
+      title:'模仿,還是開創?',
+      context:'學院的光環觸手可及。完全依循日本與西方的路徑,或許更安全;但故鄉的山林與孩童,正在他的指尖低語。',
+      good:{
+        text:'把臺灣題材帶進現代雕塑',
+        conTitle:'臺灣的身影,第一次立體',
+        conText:'西方雕塑的比例與臺灣土地的色彩在他手中交融。人物的身體不只是學院訓練的成果,更成為臺灣文化被世界看見的第一道身影。臺灣題材意識與文化自信同步上升。'
+      },
+      bad:{
+        text:'完全模仿日本與西方學院風格',
+        badTitle:'平行時空:失去名字的雕塑家',
+        badText:'灰色時間線裡,他成為一位技巧純熟的「學院複製者」。作品精準卻無魂,評論寫著:「像極了誰,卻不像他自己。」臺灣的山林與孩童,從未在近代雕塑中留下形體。這條路沒有未來──必須回到真實歷史。'
+      }
+    }
+  },
+  {
+    year:'1921', loc:'東京・大理石聖殿', eyebrow:'第五章・東西相遇',
+    title:'《甘露水》:東方美感與西方雕塑的相遇',
+    text:'鏡頭轉入一座白色大理石聖殿。水滴、蓮花、聖像光暈與柔和石紋交錯流動──黃土水嘗試把東方精神、臺灣感性與西方技法,融合成全新的藝術語言。第三道分歧,關於雕塑的靈魂。',
+    kws:['大理石','蓮葉','精神性'],
+    marker:'kanro', stop:7,
+    monument:'kanro',
+    cam:{tx:88, ty:5, tz:-94, r:46, th:0.35, ph:0.68}, dur:4.5,
+    stats:{tech:14, conf:16, influence:12},
+    decision:{
+      title:'形體,還是靈魂?',
+      context:'寫實的技巧他已臻成熟。但一件雕塑,能不能承載一座島嶼的精神?',
+      good:{
+        text:'讓雕塑承載精神與文化象徵',
+        conTitle:'從島嶼深處升起的光',
+        conText:'《甘露水》不再只是人體造形,而像一座從島嶼深處升起的精神雕像──寧靜、莊嚴、自信。後世稱她為「臺灣的維納斯」,凝視她,就是凝視臺灣睜開眼睛的瞬間。'
+      },
+      bad:{
+        text:'只追求外在寫實',
+        badTitle:'平行時空:完美卻空洞的石像',
+        badText:'灰色時間線裡,那尊大理石像技法無懈可擊,卻只是一件解剖學的展示品。沒有蓮葉、沒有甘露、沒有從東方升起的靜謐之光。百年後,沒有人記得她的名字。唯有回到真實,《甘露水》才會誕生。'
+      }
+    }
+  },
+  {
+    year:'1922–1927', loc:'東京・池袋', eyebrow:'第六章・異地戰場',
+    title:'池袋:工作室與創作戰場',
+    text:'小型工作室、石膏模具、木雕台、展覽通知與報紙評論,散落在往返臺日的航線之間。他不再是學生,而是一位努力在異地建立位置的臺灣雕塑家。委託、市場與權力的期待接踵而至──第四道分歧。',
+    kws:['工作室','經濟壓力','臺日往返'],
+    marker:'ikebukuro', stop:8,
+    cam:{tx:112, ty:4, tz:-88, r:52, th:1.4, ph:0.85}, dur:4,
+    stats:{tech:10, lonely:18, pressure:14, influence:8},
+    decision:{
+      title:'迎合,還是堅持?',
+      context:'訂單與名聲有它們自己的口味。堅持自己的語言,意味著更漫長的孤獨。',
+      good:{
+        text:'持續尋找自己的臺灣雕塑語言',
+        conTitle:'牆上浮現的故鄉',
+        conText:'工作室的牆面,浮現水牛、牧童、山林、孩童與鳥獸的浮雕草圖。無論身在何處,他始終把故鄉放在創作的核心。孤獨上升,但方向從未動搖。'
+      },
+      bad:{
+        text:'迎合市場與權力的期待',
+        badTitle:'平行時空:訂單堆成的墓碑',
+        badText:'灰色時間線裡,工作室生意興隆:胸像、獎盃、紀念雕塑源源不絕。他富有而疲憊,牆上再也沒有水牛與牧童的草圖。晚年他望著滿屋作品,卻找不到一件「自己的」。這不是黃土水──時光必須倒流。'
+      }
+    }
+  },
+  {
+    year:'1920年代後期', loc:'臺灣・田野', eyebrow:'第七章・土地的召喚',
+    title:'臺灣題材探索路線',
+    text:'鏡頭從東京飛回臺灣,掠過街道、田野、芭蕉葉、水牛與南國陽光。泥土、石膏、木材、青銅與大理石的材質不斷轉換:從學院人體到鄉土敘事,從單一人物到群像構圖,從外在形體到土地精神。最後一道分歧,關於「主角」是誰。',
+    kws:['返鄉','材質演變','群像構圖'],
+    marker:'fields', stop:10,
+    cam:{tx:-58, ty:3, tz:-30, r:85, th:-0.9, ph:0.6}, dur:6,
+    stats:{taiwan:22, conf:14, obs:8},
+    decision:{
+      title:'背景,還是主角?',
+      context:'臺灣可以只是作品裡的一抹風景,也可以是被鄭重凝視的生命本身。',
+      good:{
+        text:'讓臺灣成為作品真正的主角',
+        conTitle:'土地雕塑路線隆起',
+        conText:'田野開始隆起,牧童與水牛像從土地中被召喚出來,形成一條厚實而溫暖的「土地雕塑路線」。臺灣不再是背景──它是主角,是值得被塑造成永恆的生命。'
+      },
+      bad:{
+        text:'讓臺灣只是背景',
+        badTitle:'平行時空:退成布景的島嶼',
+        badText:'灰色時間線裡,水牛縮成角落的點綴,牧童淡成模糊的剪影。作品雅致,卻與千百件異國情調的沙龍雕塑無異。島嶼從未成為主角,《水牛群像》從未誕生。回到真實歷史,土地才會隆起。'
+      }
+    }
+  },
+  {
+    year:'1930', loc:'臺灣・田園舞台', eyebrow:'第八章・生命總結',
+    title:'《水牛群像》:島嶼的心跳',
+    text:'巨大的浮雕牆升起:三位牧童、五頭水牛、芭蕉葉與南國的風,被放大成史詩般的田園舞台。水牛低頭前行,孩子們在旁嬉戲──安靜,卻有力量,像臺灣土地本身正在呼吸。這不是宮殿,不是神話,而是把故鄉塑造成值得被永遠凝視的藝術主體。',
+    kws:['浮雕','牧童與水牛','生命高峰'],
+    marker:'buffalo', stop:11, seal:{t1:'水牛群像', t2:'黃土水的生命總結<br>1930'},
+    monument:'buffalo',
+    cam:{tx:-64, ty:6, tz:-16, r:44, th:-2.6, ph:0.95}, dur:5,
+    stats:{influence:22, taiwan:14, tech:8}
+  },
+  {
+    year:'1930・12月', loc:'東京', eyebrow:'第九章・驟停',
+    title:'生命驟停',
+    text:'色調轉為深藍與灰白。尚未拂去的石膏粉塵、突然靜止的雕刻刀、熄滅的工作室燈光,與一幅緩緩落下的白色布幕──三十五歲,黃土水因病驟逝於東京。生命路線在地圖上中斷了;但《甘露水》的白光、《蕃童》的笛聲、《水牛群像》的土地氣息,正從中斷處,靜靜延伸回島嶼。',
+    kws:['1930','未竟之作','藝術不滅'],
+    marker:null, stop:11, mourning:true,
+    cam:{tx:100, ty:8, tz:-86, r:130, th:0.9, ph:0.5}, dur:6,
+    stats:{influence:10}
+  },
+  {
+    year:'1895–1930', loc:'臺灣・全島', eyebrow:'終章・俯瞰生命地圖',
+    title:'一座名為黃土水的臺灣雕塑',
+    text:'高空俯瞰整張生命地圖:艋舺的街道化為底座,大稻埕的鐘聲化為浮雕紋路,東京美術學校化為遠方光塔;《甘露水》如白色月光升起,《水牛群像》像島嶼的心跳,在土地中央緩慢發光。「人的一生會被選擇推動,也會被時代限制;但真正深刻的創作,會在生命結束後,繼續替土地留下形狀。」',
+    kws:['生命地圖','出生的土,不朽的形'],
+    marker:null, stop:11, finale:true,
+    cam:{tx:10, ty:0, tz:-45, r:300, th:0.15, ph:0.5}, dur:8,
+    stats:null
+  }
+];
+
+// ---------- 時間軸 ----------
+var tlEl = document.getElementById('timeline');
+STAGES.forEach(function(st, i){
+  var n = document.createElement('div');
+  n.className = 'tl-node';
+  n.innerHTML = '<div class="pt"></div><div class="yr">'+st.year.replace('年代','s').replace('・12月','')+'</div>';
+  tlEl.appendChild(n);
+});
+function setTimeline(i){
+  var nodes = tlEl.children;
+  for(var k=0;k<nodes.length;k++){
+    nodes[k].classList.toggle('done', k<i);
+    nodes[k].classList.toggle('now', k===i);
+  }
+}
+
+// ---------- 敘事 UI ----------
+var narrPanel = document.getElementById('narrPanel');
+var nextBtn = document.getElementById('nextBtn');
+function showNarration(st){
+  document.getElementById('narrEyebrow').textContent = st.eyebrow;
+  document.getElementById('narrTitle').textContent = st.title;
+  document.getElementById('narrText').textContent = st.text;
+  var kwEl = document.getElementById('narrKeywords');
+  kwEl.innerHTML = '';
+  (st.kws||[]).forEach(function(k){
+    var s = document.createElement('span');
+    s.className = 'kw'; s.textContent = k;
+    kwEl.appendChild(s);
+  });
+  narrPanel.classList.add('show');
+  nextBtn.classList.remove('show');
+  setTimeout(function(){ nextBtn.classList.add('show'); }, 1400);
+}
+function hideNarration(){
+  narrPanel.classList.remove('show');
+  nextBtn.classList.remove('show');
+}
+
+// ---------- 金印 ----------
+var sealEl = document.getElementById('goldSeal');
+function stampSeal(seal){
+  document.getElementById('sealT1').textContent = seal.t1;
+  document.getElementById('sealT2').innerHTML = seal.t2;
+  sealEl.classList.remove('fade');
+  sealEl.classList.add('stamp');
+  setTimeout(function(){
+    sealEl.classList.add('fade');
+    setTimeout(function(){ sealEl.classList.remove('stamp'); }, 1100);
+  }, 2600);
+}
+
+// ---------- 流程控制 ----------
+var stageIdx = -1;
+var currentStage = null;
+var overlays = {
+  intro: document.getElementById('introOverlay'),
+  decision: document.getElementById('decisionOverlay'),
+  consequence: document.getElementById('consequenceOverlay'),
+  bad: document.getElementById('badEndOverlay'),
+  quiz: document.getElementById('quizOverlay'),
+  end: document.getElementById('endOverlay')
+};
+function showOverlay(key){ overlays[key].classList.add('show'); }
+function hideOverlay(key){ overlays[key].classList.remove('show'); }
+
+document.getElementById('startBtn').addEventListener('click', function(){
+  hideOverlay('intro');
+  document.body.classList.add('hud-on');
+  nextStage();
+});
+
+nextBtn.addEventListener('click', function(){
+  if(!currentStage) return;
+  hideNarration();
+  if(currentStage.decision){
+    openDecision(currentStage.decision);
+  } else if(currentStage.finale){
+    setTimeout(startQuiz, 600);
+  } else {
+    nextStage();
+  }
+});
+
+function nextStage(){
+  stageIdx++;
+  if(stageIdx >= STAGES.length) return;
+  var st = STAGES[stageIdx];
+  currentStage = st;
+  setTimeline(stageIdx);
+  document.getElementById('yearText').textContent = st.year;
+  document.getElementById('locText').textContent = st.loc;
+  document.body.classList.add('cinema');
+
+  // 哀悼/終章色調
+  if(st.mourning){
+    container.classList.add('mourning');
+    scene.fog.color.setHex(0x0c1220);
+    renderer.setClearColor(0x0c1220);
+    ambient.color.setHex(0xaebfd8);
+    plasterOn = true;
+  } else if(st.finale){
+    container.classList.remove('mourning');
+    scene.fog.color.setHex(0x14100a);
+    renderer.setClearColor(0x14100a);
+    ambient.color.setHex(0xffe9c4);
+    plasterOn = false;
+    // 終章:所有標記與紀念碑點亮
+    for(var mk in markers) markers[mk].visible = true;
+    for(var mo in monuments){
+      monuments[mo].visible = true;
+      if(monuments[mo].scale.x < 0.5) risingMonuments.push({obj:monuments[mo], t:0});
+    }
+  }
+
+  flyTo(st.cam, st.dur, function(){
+    document.body.classList.remove('cinema');
+    if(st.marker) revealMarker(st.marker);
+    routeTarget = stopRatio(st.stop);
+    if(st.seal) stampSeal(st.seal);
+    if(st.monument) riseMonument(st.monument);
+    applyStats(st.stats);
+    showNarration(st);
+  });
+}
+
+var revealQueue = [];
+function revealMarker(key){
+  var m = markers[key];
+  if(m && !m.visible){
+    m.visible = true;
+    m.scale.set(0.01, 0.01, 0.01);
+    revealQueue.push({obj:m, t:0});
+  }
+}
+
+// ---------- 抉擇系統 ----------
+var pendingDecision = null;
+function openDecision(dec){
+  pendingDecision = dec;
+  document.getElementById('decTitle').textContent = dec.title;
+  document.getElementById('decContext').textContent = dec.context;
+  var box = document.getElementById('decChoices');
+  box.innerHTML = '';
+  // 隨機排列選項,增加思考張力
+  var opts = [
+    {label:dec.good.text, good:true},
+    {label:dec.bad.text, good:false}
+  ];
+  if(Math.random() < 0.5) opts.reverse();
+  opts.forEach(function(o, i){
+    var b = document.createElement('button');
+    b.className = 'choice-btn';
+    b.innerHTML = '<span class="tag">選項 '+(i===0?'甲':'乙')+'</span><br>'+o.label;
+    b.addEventListener('click', function(){ chooseOption(o.good); });
+    box.appendChild(b);
+  });
+  showOverlay('decision');
+}
+function chooseOption(good){
+  hideOverlay('decision');
+  if(good){
+    showConsequence(pendingDecision.good);
+  } else {
+    container.classList.add('grayscale');
+    setTimeout(function(){
+      document.getElementById('badTitle').textContent = pendingDecision.bad.badTitle;
+      document.getElementById('badText').textContent = pendingDecision.bad.badText;
+      showOverlay('bad');
+    }, 900);
+  }
+}
+document.getElementById('rewindBtn').addEventListener('click', function(){
+  hideOverlay('bad');
+  var fader = document.getElementById('fader');
+  fader.classList.add('on');
+  setTimeout(function(){
+    container.classList.remove('grayscale');
+    fader.classList.remove('on');
+    showConsequence(pendingDecision.good, true);
+  }, 1300);
+});
+function showConsequence(g, rewound){
+  document.getElementById('conTitle').textContent = g.conTitle;
+  document.getElementById('conText').textContent = (rewound ? '⟲ 時間回到分歧點,歷史選擇了真實的道路。\n\n' : '') + g.conText;
+  showOverlay('consequence');
+}
+document.getElementById('conBtn').addEventListener('click', function(){
+  hideOverlay('consequence');
+  pendingDecision = null;
+  nextStage();
+});
+
+// ---------- 測驗 ----------
+var QUIZ = [
+  {
+    q:'黃土水出生於哪一個地區,並在哪一帶成長?',
+    opts:['嘉義、臺南','艋舺、大稻埕','淡水、北投','臺中、彰化'],
+    ans:1,
+    fb:'正解:B。黃土水出生於艋舺,成長於大稻埕,臺北城市生活成為他生命初期的重要背景。'
+  },
+  {
+    q:'黃土水在 1915 年前往哪一所學校學習雕塑?',
+    opts:['東京美術學校','京都市立藝術大學','上海美術專科學校','臺北師範學校'],
+    ans:0,
+    fb:'正解:A。東京美術學校是黃土水接受專業雕塑訓練的重要地點,也是他走向近代美術舞台的關鍵入口。'
+  },
+  {
+    q:'黃土水以哪一件作品成為第一位入選帝展的臺灣人?',
+    opts:['《甘露水》','《水牛群像》','《蕃童》','《少女》'],
+    ans:2,
+    fb:'正解:C。《蕃童》使黃土水在 1920 年入選帝展,成為臺灣美術史上的重要突破。'
+  },
+  {
+    q:'《甘露水》的藝術意義可以如何理解?',
+    opts:['只是單純模仿西方人體雕塑','完全與臺灣文化無關','融合西方雕塑技法與東方精神美感','只是一件未完成的草稿'],
+    ans:2,
+    fb:'正解:C。《甘露水》展現黃土水將西方雕塑技法與東方精神、臺灣文化意象融合的企圖。'
+  },
+  {
+    q:'《水牛群像》在黃土水生命地圖中象徵什麼?',
+    opts:['他放棄臺灣題材','他走向抽象繪畫','他以臺灣田園、牧童與水牛塑造土地精神','他只想討好外國觀眾'],
+    ans:2,
+    fb:'正解:C。《水牛群像》將臺灣鄉村生活提升為史詩般的藝術主題,是黃土水生命後期的重要代表作。'
+  }
+];
+var quizIdx = 0, quizScore = 0;
+var LETTERS = ['A','B','C','D'];
+function startQuiz(){
+  quizIdx = 0; quizScore = 0;
+  document.body.classList.remove('cinema');
+  showOverlay('quiz');
+  renderQuiz();
+}
+function renderQuiz(){
+  var q = QUIZ[quizIdx];
+  document.getElementById('quizScoreBar').textContent = '目前得分:'+quizScore+' / 100 ・ 每題 20 分 ・ 60 分過關';
+  document.getElementById('quizNum').textContent = '第 '+(quizIdx+1)+' 題 / 共 5 題';
+  document.getElementById('quizQ').textContent = q.q;
+  document.getElementById('quizFeedback').textContent = '';
+  document.getElementById('quizNextBtn').style.display = 'none';
+  var box = document.getElementById('quizOpts');
+  box.innerHTML = '';
+  q.opts.forEach(function(opt, i){
+    var b = document.createElement('button');
+    b.className = 'quiz-opt';
+    b.textContent = LETTERS[i]+'. '+opt;
+    b.addEventListener('click', function(){ answerQuiz(i, b); });
+    box.appendChild(b);
+  });
+}
+function answerQuiz(i, btn){
+  var q = QUIZ[quizIdx];
+  var btns = document.getElementById('quizOpts').children;
+  for(var k=0;k<btns.length;k++) btns[k].disabled = true;
+  if(i === q.ans){
+    btn.classList.add('correct');
+    quizScore += 20;
+    document.getElementById('quizFeedback').textContent = '✦ 答對了!'+q.fb;
+  } else {
+    btn.classList.add('wrong');
+    btns[q.ans].classList.add('correct');
+    document.getElementById('quizFeedback').textContent = '✕ 答錯了。'+q.fb;
+  }
+  document.getElementById('quizScoreBar').textContent = '目前得分:'+quizScore+' / 100 ・ 每題 20 分 ・ 60 分過關';
+  var nb = document.getElementById('quizNextBtn');
+  nb.style.display = 'inline-block';
+  nb.textContent = (quizIdx === QUIZ.length-1) ? '查看結果 ▶' : '下一題 ▶';
+}
+document.getElementById('quizNextBtn').addEventListener('click', function(){
+  quizIdx++;
+  if(quizIdx < QUIZ.length){
+    renderQuiz();
+  } else {
+    hideOverlay('quiz');
+    showEnd();
+  }
+});
+
+// ---------- 結局 ----------
+function showEnd(){
+  var pass = quizScore >= 60;
+  var sealWrap = document.getElementById('endSealWrap');
+  if(pass){
+    sealWrap.innerHTML = '<div class="seal">過關<small>'+quizScore+' 分</small></div>';
+    document.getElementById('endTitle').textContent = '生命地圖・完整解鎖';
+    document.getElementById('endText').textContent =
+      '你走完了黃土水三十五年的生命路線,也理解了他的每一次抉擇。'+
+      '黃土水的一生,不只是雕塑家的成長史,也是臺灣近代美術第一次用立體形體向世界發聲的歷程。'+
+      '人的一生會被選擇推動,也會被時代限制;但真正深刻的創作,會在生命結束後,繼續替土地留下形狀。';
+    document.getElementById('endBtn').textContent = '重新播映';
+  } else {
+    sealWrap.innerHTML = '<div class="seal fail-seal">未過關<small>'+quizScore+' 分</small></div>';
+    document.getElementById('endTitle').textContent = '再走一次生命地圖';
+    document.getElementById('endText').textContent =
+      '得分未達 60 分。艋舺的木屑、東京的石膏、池袋的孤燈與田野的水牛,還有故事沒有被完全記住。'+
+      '重新挑戰測驗,或重新播映整段生命旅程,再一次凝視黃土水的抉擇。';
+    document.getElementById('endBtn').textContent = '重新挑戰測驗';
+  }
+  showOverlay('end');
+}
+document.getElementById('endBtn').addEventListener('click', function(){
+  hideOverlay('end');
+  if(quizScore >= 60){
+    location.reload();
+  } else {
+    startQuiz();
+  }
+});
+
+// ---------- 動畫主迴圈 ----------
+var clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  var dt = Math.min(clock.getDelta(), 0.05);
+  var t = clock.elapsedTime;
+
+  // 攝影機轉場
+  if(camTween){
+    camTween.t += dt / camTween.dur;
+    var k = easeInOut(Math.min(camTween.t, 1));
+    camCtl.target.lerpVectors(camTween.from.target, camTween.to.target, k);
+    camCtl.radius = camTween.from.radius + (camTween.to.radius - camTween.from.radius) * k;
+    camCtl.theta  = camTween.from.theta  + (camTween.to.theta  - camTween.from.theta)  * k;
+    camCtl.phi    = camTween.from.phi    + (camTween.to.phi    - camTween.from.phi)    * k;
+    if(camTween.t >= 1){
+      var done = camTween.done;
+      camTween = null;
+      if(done) done();
+    }
+  }
+  applyCamera();
+
+  // 路線繪製推進
+  if(routeProgress < routeTarget){
+    routeProgress = Math.min(routeTarget, routeProgress + dt*0.09);
+    routeGeo.setDrawRange(0, Math.floor(routeProgress * ROUTE_PTS));
+    routeGlow.visible = true;
+    var gp = routeCurve.getPointAt(Math.min(routeProgress, 0.999));
+    routeGlow.position.copy(gp);
+  } else {
+    routeGlow.visible = false;
+  }
+
+  // 標記動態:光環脈動
+  for(var key in markers){
+    var m = markers[key];
+    if(!m.visible) continue;
+    var ring = m.userData.ring;
+    ring.scale.setScalar(1 + Math.sin(t*2.4 + m.position.x)*0.14);
+    ring.material.opacity = 0.5 + Math.sin(t*2.4 + m.position.x)*0.25;
+    m.userData.beam.material.opacity = 0.16 + Math.sin(t*1.6 + m.position.z)*0.07;
+  }
+
+  // 標記彈出
+  for(var rq = revealQueue.length-1; rq>=0; rq--){
+    var it = revealQueue[rq];
+    it.t += dt*1.6;
+    var sc = it.t>=1 ? 1 : 1 - Math.pow(1-it.t, 3);
+    it.obj.scale.setScalar(Math.max(0.01, sc));
+    if(it.t>=1) revealQueue.splice(rq,1);
+  }
+
+  // 紀念碑升起
+  for(var rm = risingMonuments.length-1; rm>=0; rm--){
+    var mo = risingMonuments[rm];
+    mo.t += dt*0.7;
+    var msc = mo.t>=1 ? 1 : 1 - Math.pow(1-mo.t, 3);
+    mo.obj.scale.setScalar(Math.max(0.01, msc));
+    if(mo.t>=1) risingMonuments.splice(rm,1);
+  }
+
+  // 《蕃童》笛聲光環擴散
+  if(monuments.bandou.visible && monuments.bandou.userData.rings){
+    monuments.bandou.userData.rings.forEach(function(r, i){
+      var ph = (t*0.5 + i*0.33) % 1;
+      r.scale.setScalar(0.6 + ph*1.6);
+      r.material.opacity = 0.55 * (1-ph);
+    });
+  }
+  // 《甘露水》光暈呼吸
+  if(monuments.kanro.visible){
+    monuments.kanro.userData.halo.intensity = 1.1 + Math.sin(t*1.3)*0.5;
+  }
+
+  // 金色光塵漂浮
+  var dp = dust.geometry.attributes.position.array;
+  for(var di=0; di<DUST_N; di++){
+    dp[di*3+1] += Math.sin(t*0.6 + di)*0.008;
+    dp[di*3]   += Math.cos(t*0.4 + di*0.7)*0.006;
+  }
+  dust.geometry.attributes.position.needsUpdate = true;
+  dust.rotation.y = t*0.008;
+
+  // 石膏粉塵飄落
+  var targetOpacity = plasterOn ? 0.85 : 0;
+  plasterDust.material.opacity += (targetOpacity - plasterDust.material.opacity)*dt*1.5;
+  if(plasterDust.material.opacity > 0.02){
+    var sp = plasterDust.geometry.attributes.position.array;
+    for(var si=0; si<SNOW_N; si++){
+      sp[si*3+1] -= dt*(3+ (si%5));
+      if(sp[si*3+1] < 2) sp[si*3+1] = 80+Math.random()*10;
+    }
+    plasterDust.geometry.attributes.position.needsUpdate = true;
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', function(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
